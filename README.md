@@ -1,5 +1,5 @@
 
-![Rysun](image.png)
+![Rysun](images/image.png)
 # Project Documentation
 
 ## Table of Contents
@@ -13,6 +13,9 @@
 6. [Contact Information](#contact-information)
 7. [Todo](#todo)
 
+
+![alt text](images/image-1.png)
+Note: This is just the current state of the website before the handoff.
 
 ## Introduction
 - This is a Rysun Digital Marketing website
