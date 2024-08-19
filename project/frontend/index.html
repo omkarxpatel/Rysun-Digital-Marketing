@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rysun Ai Project - Omkar Patel</title>l
+    <link rel="shortcut icon" href="https://intranet.rysun.com/assets/images/favicon.png" />
+
+    <!-- tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/babel-standalone/babel.min.js"></script>
+</head>
+
+<body class="bg-gray-100">
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useEffect, useState } = React;
+
+        function App() {
+            const [status, setStatus] = useState(false);
+            const [fullScreen, setFullScreen] = useState(false);
+
+            // Left Data
+            const [leftIsLoading, setLeftIsLoading] = useState(false);
+            const [leftForm, setLeftForm] = useState({ platform: '', username: '' });
+            const [instagramDataLeft, setInstagramDataLeft] = useState(null);
+
+            // Right Data
+            const [rightIsLoading, setRightIsLoading] = useState(false);
+            const [instagramDataRight, setInstagramDataRight] = useState(null);
+            const [rightForm, setRightForm] = useState({ platform: '', username: '' });
+
+            
+            useEffect(() => {
+                const interval = setInterval(() => {
+                    fetch('http://localhost:5000/status')
+                        .then(response => response.json())
+                        .then(data => setStatus(true))
+                        .catch(error => setStatus(false));
+                }, 5000);
+
+
+                const generateSessionId = async () => {
+                    try {
+                        const response = await fetch(
+                            "http://localhost:5000/api/create_session",
+                            {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                },
+                            }
+                        );
+                        const data = await response.json();
+                        const newSessionId = data.sessionId;
+                        sessionStorage.setItem("sessionId", newSessionId);
+                        console.log(`Session ID created and stored: ${newSessionId}`);
+                    } catch (error) {
+                        console.error("Error creating session:", error);
+                    }
+                };
+
+
+                const deleteSessionId =  () => {
+                    const sessionId = sessionStorage.getItem("sessionId");
+                    if (sessionId) {
+                        try {
+                            const response = fetch("http://localhost:5000/api/delete_session", {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                },
+                                body: JSON.stringify({ sessionId }),  // Sending sessionId in the body
+                            });
+                            const result = response.json();
+                            console.log(result.message || result.error);
+                        } catch (error) {
+                            console.error("Error deleting session:", error);
+                        }
+                    }
+                };
+                
+    
+                window.addEventListener("beforeunload", deleteSessionId);
+
+                generateSessionId();
+                
+                return () => clearInterval(interval);
+            }, []);
+
+            const handleInputChange = (e, form, setForm) => {
+                const { name, value } = e.target;
+                setForm(prevState => ({ ...prevState, [name]: value }));
+            };
+
+            const handleSubmitLeft = (e) => {
+                e.preventDefault();
+                setLeftIsLoading(true);
+                console.log('Left Form Data:', leftForm);
+            
+                if (leftForm.platform === 'Instagram') {
+                    fetch('http://localhost:5000/get_instagram_info', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: leftForm.username }),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        //setInstagramDataLeft(null); // Clear previous data here, just before setting new data
+                        if (data.error) {
+                            setInstagramDataLeft(data.error);
+                        } else {
+                            console.log(data)
+                            setInstagramDataLeft(data);
+                        }
+                        setLeftIsLoading(false);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        setLeftIsLoading(false);
+                    });
+                } else {
+                    setLeftIsLoading(false);
+                }
+            };
+            
+            const handleSubmitRight = (e) => {
+                e.preventDefault();
+                setRightIsLoading(true);
+                console.log('Right Form Data:', rightForm)
+
+                if (rightForm.platform === 'Instagram') {
+                    fetch('http://localhost:5000/get_instagram_info', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: rightForm.username }),
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.error) {
+                                setInstagramDataRight(data.error);
+                            } else {
+                                setInstagramDataRight(data);
+                            }
+                            setRightIsLoading(false);
+                        })
+                        .catch(error => {
+                            console.error('Error:', error)
+                            setRightIsLoading(false);
+                        });
+                } else {
+                    setRightIsLoading(false);
+                }
+            };
+
+            return (
+                <div className="container mx-auto mt-8 p-4 bg-white shadow-md rounded-lg">
+                    <div className="text-center">
+                        <img
+                            src="https://www.rysun.com/wp-content/uploads/2023/07/rysun-logo-2.png"
+                            alt="Rysun Logo"
+                            className="mx-auto mb-4"
+                        />
+                        <h1 className="text-2xl mb-4 text-center border-b-2 border-gray-300 pb-2">
+                            Digital Marketing Assistance
+                        </h1>
+                    </div>
+                    <div className="flex flex-1">
+                        {/* Left Panel */}
+                        <div className={`bg-gray-100 p-4 border-r border-gray-400 ${fullScreen ? 'w-1/6' : 'w-1/4'}`}>
+                            <form onSubmit={handleSubmitLeft}>
+                                <h2 className="mb-4">Left Panel Form</h2>
+                                {leftForm.platform && (
+                                    <h5 className="text-gray-700 font-semibold text-xs">
+                                        Platform
+                                    </h5>
+                                )}
+                                <select
+                                    name="platform"
+                                    value={leftForm.platform}
+                                    onChange={(e) => handleInputChange(e, leftForm, setLeftForm)}
+                                    className="w-full mb-2 p-2 border rounded"
+                                    required
+                                >
+                                    <option value="">Select Platform</option>
+                                    <option value="Instagram">Instagram</option>
+                                    {/* Add other platforms as needed */}
+                                </select>
+
+                                {leftForm.username && (
+                                    <h5 className="text-gray-700 font-semibold text-xs">
+                                        Username
+                                    </h5>
+                                )}
+                                <input
+                                    type="text"
+                                    name="username"
+                                    value={leftForm.username}
+                                    onChange={(e) => handleInputChange(e, leftForm, setLeftForm)}
+                                    className="w-full mb-2 p-2 border rounded"
+                                    placeholder="Username"
+                                    onInput={(e) => {
+                                        if (!e.target.value.startsWith("@")) {
+                                            e.target.value = "@" + e.target.value;
+                                        }
+                                    }}
+                                />
+
+                                <button
+                                        type="submit"
+                                        className={
+                                            leftIsLoading || !status
+                                                ? "w-full mt-2 bg-gray-500 text-white p-2 rounded"
+                                                : "w-full mt-2 bg-indigo-400 text-white p-2 rounded"
+                                        }
+                                        disabled={leftIsLoading || !status}
+                                    >
+                                    {leftIsLoading && (
+                                        <div
+                                            class="inline-block h-4 w-4 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"
+                                            role="status"
+                                        >
+                                            <span class="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">
+                                                &nbsp;Loading...
+                                            </span>
+                                        </div>
+                                    )}
+                                    {leftIsLoading ? "  Loading...  " : "Submit"}
+                                </button>
+                            </form>
+                        </div>
+
+                        {/* Center Panels */}
+                        <div className={`flex-1 flex ${fullScreen ? 'w-5/6' : 'w-1/2'}`}>
+                            <div className="flex-1 p-4 border-r border-gray-400">
+                                {instagramDataLeft ? (
+                                    <h2 className="text-xl mb-4">Instagram Data</h2>
+                                ) : (
+                                    <p></p>
+                                )}
+
+                                {leftIsLoading ? (
+                                    <p>Loading...</p>
+                                ) : instagramDataLeft ? (
+                                    typeof instagramDataLeft === 'string' ? (
+                                        <p>{instagramDataLeft}</p>
+                                    ) : (
+                                        <div className="bg-white p-4 rounded-lg shadow-md">
+                                            <img
+                                                src={instagramDataLeft.profile_pic_url}
+                                                alt="Profile"
+                                                className="w-20 h-20 rounded-full mx-auto mb-2"
+                                            />
+                                            <h3 className="text-center text-xl mb-2">@{instagramDataLeft.username}</h3>
+                                            <p className="text-center">{instagramDataLeft.full_name}</p>
+                                            <p className="text-center">{instagramDataLeft.biography}</p>
+                                            <p className="text-center">Followers: {instagramDataLeft.followers}</p>
+                                            <p className="text-center">Following: {instagramDataLeft.followees}</p>
+                                            <p className="text-center">Posts: {instagramDataLeft.posts}</p>
+
+                                            <h3 className="text-lg font-semibold mt-4">Highest Engagement Post</h3>
+                                            <a href={instagramDataLeft.highest_engagement_post.href} target="_blank" rel="noopener noreferrer" class="text-blue-500 underline">View Post</a>
+                                            <iframe
+                                                src={`${instagramDataLeft.highest_engagement_post.href}`}
+                                                width="320"
+                                                height="440"
+                                                frameborder="0"
+                                                scrolling="no"
+                                                allowtransparency="true"
+                                            ></iframe>
+
+
+                                            <p>Likes: {instagramDataLeft.highest_engagement_post.likes}</p>
+                                            <p>Comments: {instagramDataLeft.highest_engagement_post.comments}</p>
+                                            <p>Caption: {instagramDataLeft.highest_engagement_post.caption}</p>
+
+                                            <h3 className="text-lg font-semibold mt-4">Lowest Engagement Post</h3>
+                                            <a href={instagramDataLeft.lowest_engagement_post.href} target="_blank" rel="noopener noreferrer" class="text-blue-500 underline">View Post</a>
+                                            <p>Likes: {instagramDataLeft.lowest_engagement_post.likes}</p>
+                                            <p>Comments: {instagramDataLeft.lowest_engagement_post.comments}</p>
+                                            <p>Caption: {instagramDataLeft.lowest_engagement_post.caption}</p>
+                                        </div>
+                                    )
+                                ) : (
+                                    <p>No data available.</p>
+                                )}
+                                
+
+                                {leftIsLoading && (
+                                    <div role="status" class="flex justify-center items-center h-full">
+                                        <svg aria-hidden="true" class="w-16 h-16 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+                                            <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
+                                        </svg>
+                                        <span class="sr-only">Loading...</span>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            <div className="flex-1 p-4 border-r border-gray-400">
+                                {instagramDataRight ? (
+                                    <h2 className="text-xl mb-4">Instagram Data</h2>
+                                ) : (
+                                    <p></p>
+                                )}
+
+                                {rightIsLoading ? (
+                                    <p>Loading...</p>
+                                ) : instagramDataRight ? (
+                                    typeof instagramDataRight === 'string' ? (
+                                        <p>{instagramDataRight}</p>
+                                    ) : (
+                                        <div className="bg-white p-4 rounded-lg shadow-md">
+                                            <img
+                                                src={instagramDataRight.profile_pic_url}
+                                                alt="Profile"
+                                                className="w-20 h-20 rounded-full mx-auto mb-2"
+                                            />
+                                            <h3 className="text-center text-xl mb-2">@{instagramDataRight.username}</h3>
+                                            <p className="text-center">{instagramDataRight.full_name}</p>
+                                            <p className="text-center">{instagramDataRight.biography}</p>
+                                            <p className="text-center">Followers: {instagramDataRight.followers}</p>
+                                            <p className="text-center">Following: {instagramDataRight.followees}</p>
+                                            <p className="text-center">Posts: {instagramDataRight.posts}</p>
+
+                                            <h3 className="text-lg font-semibold mt-4">Highest Engagement Post</h3>
+                                            <a href={instagramDataRight.highest_engagement_post.href} target="_blank" rel="noopener noreferrer" class="text-blue-500 underline">View Post</a>
+                                            <p>Likes: {instagramDataRight && instagramDataRight.highest_engagement_post.likes}</p>
+                                            <p>Comments: {instagramDataRight && instagramDataRight.highest_engagement_post.comments}</p>
+                                            <p>Caption: {instagramDataRight && instagramDataRight.highest_engagement_post.caption}</p>
+                                            
+                                            <h3 className="text-lg font-semibold mt-4">Lowest Engagement Post</h3>
+                                            <a href={instagramDataRight.lowest_engagement_post.href} target="_blank" rel="noopener noreferrer" class="text-blue-500 underline">View Post</a>
+                                            <p>Likes: {instagramDataRight && instagramDataRight.lowest_engagement_post.likes}</p>
+                                            <p>Comments: {instagramDataRight && instagramDataRight.lowest_engagement_post.comments}</p>
+                                            <p>Caption: {instagramDataRight && instagramDataRight.lowest_engagement_post.caption}</p>
+                                        </div>
+                                    )
+                                ) : (
+                                    <p>No data available.</p>
+                                )}
+
+                                {rightIsLoading && (
+                                    <div role="status" class="flex justify-center items-center h-full">
+                                        <svg aria-hidden="true" class="w-16 h-16 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+                                            <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
+                                        </svg>
+                                        <span class="sr-only">Loading...</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Right Panel */}
+                        <div className={`bg-gray-100 p-4 ${fullScreen ? 'w-1/6' : 'w-1/4'}`}>
+                            <form onSubmit={handleSubmitRight}>
+                                <h2 className="mb-4">Right Panel Form</h2>
+                                {rightForm.platform && (
+                                    <h5 className="text-gray-700 font-semibold text-xs">
+                                        Platform
+                                    </h5>
+                                )}
+                                <select
+                                    name="platform"
+                                    value={rightForm.platform}
+                                    onChange={(e) => handleInputChange(e, rightForm, setRightForm)}
+                                    className="w-full mb-2 p-2 border rounded"
+                                    required
+                                >
+                                    <option value="">Select Platform</option>
+                                    <option value="Instagram">Instagram</option>
+                                    {/* Add other platforms as needed */}
+                                </select>
+
+                                {rightForm.username && (
+                                    <h5 className="text-gray-700 font-semibold text-xs">
+                                        Username
+                                    </h5>
+                                )}
+                                <input
+                                    type="text"
+                                    name="username"
+                                    value={rightForm.username}
+                                    onChange={(e) => handleInputChange(e, rightForm, setRightForm)}
+                                    className="w-full mb-2 p-2 border rounded"
+                                    placeholder="Username"
+                                    onInput={(e) => {
+                                        if (!e.target.value.startsWith("@")) {
+                                            e.target.value = "@" + e.target.value;
+                                        }
+                                    }}
+                                />
+                                <button
+                                        type="submit"
+                                        className={
+                                            rightIsLoading || !status
+                                                ? "w-full mt-2 bg-gray-500 text-white p-2 rounded"
+                                                : "w-full mt-2 bg-indigo-400 text-white p-2 rounded"
+                                        }
+                                        disabled={rightIsLoading || !status}
+                                    >
+                                    {rightIsLoading && (
+                                        <div
+                                            class="inline-block h-4 w-4 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"
+                                            role="status"
+                                        >
+                                            <span class="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">
+                                                &nbsp;Loading...
+                                            </span>
+                                        </div>
+                                    )}
+                                    {rightIsLoading ? "  Loading...  " : "Submit"}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <div className="p-4 bg-gray-300 border-t border-gray-400">
+                        <button
+                            type="button"
+                            className="bg-red-500 text-white p-2 rounded"
+                            onClick={() => setFullScreen(!fullScreen)}
+                        >
+                            Toggle Fullscreen
+                        </button>
+                        <div>Server Status: {status ? "online": "offline"}</div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+
+</html>
